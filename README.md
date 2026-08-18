@@ -135,7 +135,3 @@ Add the same variables from `.env.example` in the Vercel dashboard under **Setti
 - Manual chunk splitting (vendor, ui, forms)
 - Skeleton loading states
 - Optimized for low-bandwidth mobile devices
-
-## License
-
-MIT — Built for educational and civic-tech purposes.

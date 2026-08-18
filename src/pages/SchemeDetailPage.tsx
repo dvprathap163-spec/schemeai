@@ -7,10 +7,13 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
+import { getLocalizedSchemeValue } from '@/lib/scheme-translation'
+import { useTranslation } from 'react-i18next'
 
 const API_URL = 'http://localhost:5000/api'
 
 export function SchemeDetailPage() {
+  const { i18n } = useTranslation()
   const { slug } = useParams<{ slug: string }>()
   const [scheme, setScheme] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
@@ -83,9 +86,9 @@ export function SchemeDetailPage() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              {scheme.category && <Badge className="mb-3">{scheme.category}</Badge>}
-              <h1 className="text-3xl font-bold">{scheme.name}</h1>
-              <p className="mt-2 text-muted-foreground">{scheme.ministry}</p>
+              {scheme.category && <Badge className="mb-3">{getLocalizedSchemeValue(scheme, 'category', i18n.language)}</Badge>}
+              <h1 className="text-3xl font-bold">{getLocalizedSchemeValue(scheme, 'name', i18n.language)}</h1>
+              <p className="mt-2 text-muted-foreground">{getLocalizedSchemeValue(scheme, 'ministry', i18n.language)}</p>
             </div>
             <Button variant="outline" onClick={handleSave} disabled={saved}>
               <Bookmark className={cn('h-4 w-4', saved && 'fill-primary text-primary')} />
@@ -93,7 +96,7 @@ export function SchemeDetailPage() {
             </Button>
           </div>
 
-          <p className="mt-6 text-lg leading-relaxed">{scheme.description}</p>
+          <p className="mt-6 text-lg leading-relaxed">{getLocalizedSchemeValue(scheme, 'description', i18n.language)}</p>
 
           <div className="mt-8 flex flex-wrap gap-3">
             {scheme.applyUrl && (
@@ -127,7 +130,7 @@ export function SchemeDetailPage() {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
-                    {scheme.benefits.map((b: string) => (
+                    {(getLocalizedSchemeValue(scheme, 'benefits', i18n.language) as string[]).map((b: string) => (
                       <li key={b} className="flex items-start gap-2 text-sm">
                         <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-secondary" />
                         {b}
@@ -147,7 +150,7 @@ export function SchemeDetailPage() {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
-                    {scheme.documents.map((d: string) => (
+                    {(getLocalizedSchemeValue(scheme, 'documents', i18n.language) as string[]).map((d: string) => (
                       <li key={d} className="flex items-start gap-2 text-sm">
                         <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
                         {d}

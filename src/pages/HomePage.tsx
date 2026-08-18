@@ -10,12 +10,6 @@ import { Card, CardContent } from '@/components/ui/card'
 
 const API_URL = 'http://localhost:5000/api'
 
-const DEFAULT_FEEDBACK = [
-  { _id: '1', name: 'Priya Sharma', comment: 'Found 8 schemes I was eligible for. Applied to PM Scholarship within minutes!', rating: 5 },
-  { _id: '2', name: 'Rajesh Kumar', comment: 'As a farmer, PM-KISAN was matched instantly. Very helpful platform.', rating: 5 },
-  { _id: '3', name: 'Anita Devi', comment: 'The Hindi interface made it easy for my mother to check her pension eligibility.', rating: 5 },
-]
-
 const DEFAULT_FAQS = [
   { _id: 'f1', q: 'Is this platform free to use?', a: 'Yes, SchemeAI is completely free for all Indian citizens. No hidden charges.' },
   { _id: 'f2', q: 'How accurate are the eligibility results?', a: 'Our engine matches your profile against official scheme criteria. Always verify on government portals before applying.' },
@@ -25,12 +19,12 @@ const DEFAULT_FAQS = [
 
 export function HomePage() {
   const { t } = useTranslation()
-  const [feedback, setFeedback] = useState(DEFAULT_FEEDBACK)
   const [faqs, setFaqs] = useState(DEFAULT_FAQS)
+  const [feedbacks, setFeedbacks] = useState<any[]>([])
 
   useEffect(() => {
-    fetch(`${API_URL}/feedback`).then(r => r.ok ? r.json() : null).then(d => { if (d?.length) setFeedback(d) }).catch(() => {})
     fetch(`${API_URL}/faqs`).then(r => r.ok ? r.json() : null).then(d => { if (d?.length) setFaqs(d.map((f: any) => ({ ...f, q: f.question, a: f.answer }))) }).catch(() => {})
+    fetch(`${API_URL}/feedback`).then(r => r.ok ? r.json() : null).then(d => { if (d) setFeedbacks(d) }).catch(() => {})
   }, [])
 
   return (
@@ -56,30 +50,6 @@ export function HomePage() {
                     {t('hero.secondary')}
                   </Button>
                 </Link>
-              </div>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="hidden lg:block"
-            >
-              <div className="glass-card rounded-2xl p-6 text-foreground">
-                <div className="mb-4 flex items-center gap-2">
-                  <div className="h-3 w-3 rounded-full bg-red-400" />
-                  <div className="h-3 w-3 rounded-full bg-yellow-400" />
-                  <div className="h-3 w-3 rounded-full bg-green-400" />
-                </div>
-                <div className="space-y-3">
-                  {['PM Scholarship Scheme', 'PM-KISAN Samman Nidhi', 'Ayushman Bharat'].map((name, i) => (
-                    <div key={name} className="flex items-center justify-between rounded-lg bg-muted p-3">
-                      <span className="text-sm font-medium">{name}</span>
-                      <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700 dark:bg-green-900 dark:text-green-200">
-                        {95 - i * 3}% match
-                      </span>
-                    </div>
-                  ))}
-                </div>
               </div>
             </motion.div>
           </div>
@@ -129,6 +99,51 @@ export function HomePage() {
         </div>
       </section>
 
+      <section className="py-16 bg-background border-t border-b border-border">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <h2 className="text-center text-3xl font-bold mb-2">What Our Citizens Say</h2>
+          <p className="text-center text-muted-foreground mb-12">Read reviews and feedback from users who found government schemes through our portal.</p>
+          {feedbacks.length === 0 ? (
+            <p className="text-center text-sm text-muted-foreground">No feedback submitted yet. Be the first to share your experience on our Contact Page!</p>
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {feedbacks.slice(0, 6).map((item: any) => (
+                <Card key={item._id} className="h-full flex flex-col justify-between hover:shadow-md transition-shadow">
+                  <CardContent className="pt-6 flex flex-col h-full justify-between">
+                    <div>
+                      <div className="flex items-center gap-1 mb-3">
+                        {Array.from({ length: 5 }).map((_, idx) => (
+                          <span
+                            key={idx}
+                            className={`text-lg ${
+                              idx < (item.rating || 5) ? 'text-amber-400' : 'text-muted/40'
+                            }`}
+                          >
+                            ★
+                          </span>
+                        ))}
+                      </div>
+                      <p className="font-semibold text-base mb-2">{item.subject}</p>
+                      <p className="text-sm text-muted-foreground italic">"{item.comment}"</p>
+                    </div>
+                    <div className="mt-6 border-t border-border pt-4">
+                      <p className="text-sm font-semibold text-foreground">{item.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(item.createdAt).toLocaleDateString(undefined, {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
       <section className="py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <h2 className="text-center text-3xl font-bold">{t('benefits.title')}</h2>
@@ -144,25 +159,6 @@ export function HomePage() {
                   <b.icon className="mb-3 h-8 w-8 text-primary" />
                   <h3 className="font-semibold">{b.title}</h3>
                   <p className="mt-2 text-sm text-muted-foreground">{b.desc}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-muted/30 py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <h2 className="text-center text-3xl font-bold">Feedback</h2>
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
-            {feedback.map((item: any) => (
-              <Card key={item._id}>
-                <CardContent className="pt-6">
-                  <div className="mb-3 flex gap-1">{Array.from({ length: item.rating }).map((_, i) => (
-                    <span key={i} className="text-accent">★</span>
-                  ))}</div>
-                  <p className="text-sm text-muted-foreground">&ldquo;{item.comment || item.text}&rdquo;</p>
-                  <p className="mt-4 font-semibold">{item.name}</p>
                 </CardContent>
               </Card>
             ))}

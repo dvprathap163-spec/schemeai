@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
+import logoImg from '@/assets/logo.png'
 
 const govLinks = [
   { name: 'India.gov.in', url: 'https://www.india.gov.in' },
@@ -17,9 +18,7 @@ export function Footer() {
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           <div>
             <div className="mb-4 flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-hero text-white font-bold text-sm">
-                SG
-              </div>
+              <img src={logoImg} alt="SchemeAI Logo" className="h-9 w-9 object-contain rounded-lg" />
               <span className="font-bold text-lg">Scheme<span className="text-primary">AI</span></span>
             </div>
             <p className="text-sm text-muted-foreground">{t('footer.tagline')}</p>

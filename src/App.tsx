@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { Layout } from '@/components/layout/Layout'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -9,6 +9,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext'
 
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ProtectedRoute, AdminRoute } from '@/components/auth/ProtectedRoute'
+import { setAllSchemes } from '@/lib/scheme-service'
 
 const HomePage = lazy(() => import('@/pages/HomePage').then((m) => ({ default: m.HomePage })))
 const CheckEligibilityPage = lazy(() => import('@/pages/CheckEligibilityPage').then((m) => ({ default: m.CheckEligibilityPage })))
@@ -36,6 +37,17 @@ function PageLoader() {
 }
 
 function App() {
+  useEffect(() => {
+    fetch('http://localhost:5000/api/schemes')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setAllSchemes(data)
+        }
+      })
+      .catch((err) => console.error('Failed to load schemes:', err))
+  }, [])
+
   return (
     <ThemeProvider>
       <AuthProvider>

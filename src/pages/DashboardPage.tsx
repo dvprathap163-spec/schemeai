@@ -11,7 +11,6 @@ const API_URL = 'http://localhost:5000/api'
 export function DashboardPage() {
   const { user, logout } = useAuth()
   const [savedSchemes, setSavedSchemes] = useState<any[]>([])
-  const [feedback, setFeedback] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
@@ -35,16 +34,6 @@ export function DashboardPage() {
         }
       } catch (err) {
         console.error('Failed to fetch saved schemes', err)
-      }
-
-      try {
-        const res = await fetch(`${API_URL}/feedback`)
-        if (res.ok) {
-          const data = await res.json()
-          setFeedback(data || [])
-        }
-      } catch (err) {
-        console.error('Failed to fetch feedback', err)
       }
 
       setLoading(false)
@@ -131,33 +120,6 @@ export function DashboardPage() {
                               <Button variant="secondary" className="w-full">View Details</Button>
                             </Link>
                           </div>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <h2 className="text-2xl font-semibold mb-6">User Feedback</h2>
-                  {feedback.length === 0 ? (
-                    <Card>
-                      <CardContent className="py-12 text-center text-muted-foreground">
-                        <p>No feedback available yet.</p>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <div className="grid gap-4">
-                      {feedback.map((item: any) => (
-                        <Card key={item._id}>
-                          <CardContent>
-                            <div className="flex items-center gap-2 mb-3">
-                              {Array.from({ length: item.rating || 5 }).map((_, idx) => (
-                                <span key={idx} className="text-amber-400">★</span>
-                              ))}
-                            </div>
-                            <p className="text-sm text-muted-foreground">{item.comment}</p>
-                            <p className="mt-4 font-semibold">{item.name}</p>
-                          </CardContent>
                         </Card>
                       ))}
                     </div>

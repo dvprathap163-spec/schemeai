@@ -18,7 +18,7 @@ const resources = {
         subtitle: 'Find scholarships, subsidies, welfare programs and benefits tailored to your profile — in seconds.',
         cta: 'Check My Eligibility',
         secondary: 'Browse All Schemes',
-        trusted: 'Trusted by 2M+ citizens',
+        trusted: 'Your Personalized Scheme Buddy 🤝',
       },
       howItWorks: {
         title: 'How It Works',

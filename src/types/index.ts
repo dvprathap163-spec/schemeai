@@ -1,15 +1,19 @@
-export type CasteCategory = 'General' | 'OBC' | 'SC' | 'ST' | 'EWS'
+export type CasteCategory = 'General' | 'OBC' | 'PVTG' | 'SC' | 'ST' | 'DNT' | 'EWS'
 export type Gender = 'Male' | 'Female' | 'Other'
 export type MaritalStatus = 'Single' | 'Married' | 'Widowed' | 'Divorced'
-export type EmploymentStatus = 'Employed' | 'Unemployed' | 'Self-Employed' | 'Student' | 'Retired'
+export type EmploymentStatus = 'Employed' | 'Unemployed' | 'Self-Employed' | 'Student' | 'Retired' | 'Farmer' | 'Startup Owner'
 export type Qualification = 'Below 10th' | '10th' | '12th' | 'Graduate' | 'Post Graduate' | 'PhD'
 export type CollegeType = 'Government' | 'Private' | 'NA'
 export type AreaType = 'Rural' | 'Urban'
-export type SchemeCategory = 'Education' | 'Health' | 'Agriculture' | 'Employment' | 'Housing' | 'Women' | 'Senior Citizen' | 'Startup' | 'Skill Development' | 'Social Welfare'
+export type SchemeCategory = 
+  | 'Education' | 'Health' | 'Agriculture' | 'Employment' | 'Housing' | 'Women' 
+  | 'Senior Citizen' | 'Startup' | 'Skill Development' | 'Social Welfare'
+  | 'Disability Welfare' | 'Animal Husbandry & Fisheries' | 'Traditional Crafts & Artisans' | 'Senior Citizen Welfare'
+  | 'Skills & Employment' | 'Women & Child' | 'Business & Entrepreneurship'
 export type EligibilityStatus = 'eligible' | 'partial' | 'not_eligible'
 
 export interface UserProfile {
-  fullName: string
+  fullName?: string
   age: number
   gender: Gender
   maritalStatus: MaritalStatus
@@ -30,6 +34,8 @@ export interface UserProfile {
   isMinority: boolean
   isStartupOwner: boolean
   skillDevelopmentInterest: boolean
+  isArtisan: boolean
+  isAnimalHusbandryOrFisheries: boolean
 }
 
 export interface SchemeRules {
@@ -46,6 +52,8 @@ export interface SchemeRules {
   startupOwnerOnly?: boolean
   skillDevelopmentOnly?: boolean
   disabilityOnly?: boolean
+  artisanOnly?: boolean
+  husbandryOrFisheriesOnly?: boolean
   genders?: Gender[]
   states?: string[]
   areaTypes?: AreaType[]
@@ -58,14 +66,30 @@ export interface Scheme {
   slug: string
   name: string
   nameHi: string
+  nameTe?: string
+  nameKn?: string
+  nameMl?: string
+  nameTa?: string
   description: string
   descriptionHi: string
+  descriptionTe?: string
+  descriptionKn?: string
+  descriptionMl?: string
+  descriptionTa?: string
   category: SchemeCategory
   ministry: string
   benefits: string[]
   benefitsHi: string[]
+  benefitsTe?: string[]
+  benefitsKn?: string[]
+  benefitsMl?: string[]
+  benefitsTa?: string[]
   documents: string[]
   documentsHi: string[]
+  documentsTe?: string[]
+  documentsKn?: string[]
+  documentsMl?: string[]
+  documentsTa?: string[]
   deadline?: string
   officialUrl: string
   applyUrl: string
@@ -81,14 +105,6 @@ export interface EligibilityResult {
   score: number
   matchedCriteria: string[]
   missedCriteria: string[]
-}
-
-export interface Feedback {
-  id: string
-  name: string
-  rating: number
-  comment: string
-  createdAt: string
 }
 
 export interface Notification {
@@ -177,4 +193,14 @@ export interface RankedScheme {
   matchedCriteria: string[]
   missingInformation: string[]
   disqualifyingCriteria: string[]
+}
+
+export interface Feedback {
+  id: string
+  name: string
+  email: string
+  subject: string
+  comment: string
+  rating: number
+  createdAt: string
 }

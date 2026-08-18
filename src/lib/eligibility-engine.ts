@@ -1,4 +1,4 @@
-import type { EligibilityResult, Scheme, SchemeRules, UserProfile } from '@/types'
+import type { EligibilityResult, SchemeRules, UserProfile, Scheme } from '@/types'
 
 function checkRule(
   ruleKey: keyof SchemeRules,
@@ -35,7 +35,12 @@ function checkRule(
       return false
 
     case 'categories':
-      if ((ruleValue as string[]).includes(profile.casteCategory)) {
+      const equivalentCategories: Record<string, string[]> = {
+        PVTG: ['PVTG', 'ST'],
+        DNT: ['DNT', 'OBC'],
+      }
+      const profileCategories = equivalentCategories[profile.casteCategory] ?? [profile.casteCategory]
+      if ((ruleValue as string[]).some((category) => profileCategories.includes(category))) {
         matched.push(`Category: ${profile.casteCategory}`)
         return true
       }
@@ -114,6 +119,22 @@ function checkRule(
       missed.push('Disability status required')
       return false
 
+    case 'artisanOnly':
+      if (!ruleValue || profile.isArtisan) {
+        if (ruleValue) matched.push('Artisan status')
+        return true
+      }
+      missed.push('Must be an artisan / craftsman')
+      return false
+
+    case 'husbandryOrFisheriesOnly':
+      if (!ruleValue || profile.isAnimalHusbandryOrFisheries) {
+        if (ruleValue) matched.push('Animal husbandry / fisheries status')
+        return true
+      }
+      missed.push('Must be involved in animal husbandry or fisheries')
+      return false
+
     case 'genders':
       if ((ruleValue as string[]).includes(profile.gender)) {
         matched.push(`Gender: ${profile.gender}`)
@@ -162,7 +183,7 @@ function checkRule(
 export function evaluateScheme(scheme: Scheme, profile: UserProfile): EligibilityResult {
   const matchedCriteria: string[] = []
   const missedCriteria: string[] = []
-  const rules = scheme.rules
+  const rules = scheme.rules || {}
   const ruleKeys = Object.keys(rules) as (keyof SchemeRules)[]
   let passed = 0
   const total = ruleKeys.length
@@ -181,27 +202,51 @@ export function evaluateScheme(scheme: Scheme, profile: UserProfile): Eligibilit
     status = 'partial'
   }
 
-  const relevanceBoost = scheme.featured ? 5 : 0
-  const popularityBoost = scheme.popularity * 0.1
-
   return {
     scheme,
     status,
-    score: Math.min(100, score + relevanceBoost + popularityBoost),
+    score: Math.min(100, score + 5),
     matchedCriteria,
     missedCriteria,
   }
 }
 
 export function evaluateAllSchemes(schemes: Scheme[], profile: UserProfile): EligibilityResult[] {
-  return schemes
+  const eligibleResults = schemes
     .map((scheme) => evaluateScheme(scheme, profile))
-    .filter((r) => r.status !== 'not_eligible')
+    // A partial result means at least one mandatory scheme requirement was not
+    // met. Do not show it as an application recommendation.
+    .filter((r) => r.status === 'eligible')
+
+  // When a person has told us their primary group (for example, student),
+  // prioritise schemes designed for that group. Generic income-only schemes
+  // such as housing should not drown out scholarships in the results.
+  const profileSpecificResults = eligibleResults.filter((result) =>
+    isProfileSpecificScheme(result.scheme, profile),
+  )
+  const results = profileSpecificResults.length > 0 ? profileSpecificResults : eligibleResults
+
+  return results
     .sort((a, b) => {
-      const statusOrder = { eligible: 0, partial: 1, not_eligible: 2 }
-      if (statusOrder[a.status] !== statusOrder[b.status]) {
-        return statusOrder[a.status] - statusOrder[b.status]
-      }
-      return b.score - a.score
+      const matchedRuleDifference = b.matchedCriteria.length - a.matchedCriteria.length
+      if (matchedRuleDifference !== 0) return matchedRuleDifference
+      return b.scheme.popularity - a.scheme.popularity
     })
+}
+
+function isProfileSpecificScheme(scheme: Scheme, profile: UserProfile): boolean {
+  const rules = scheme.rules ?? {}
+
+  return (
+    (profile.isStudent && rules.studentOnly === true) ||
+    (profile.isFarmer && rules.farmerOnly === true) ||
+    (profile.isWidow && rules.widowOnly === true) ||
+    (profile.isSeniorCitizen && rules.seniorCitizenOnly === true) ||
+    (profile.isMinority && rules.minorityOnly === true) ||
+    (profile.isStartupOwner && rules.startupOwnerOnly === true) ||
+    (profile.skillDevelopmentInterest && rules.skillDevelopmentOnly === true) ||
+    (profile.disabilityStatus && rules.disabilityOnly === true) ||
+    (profile.isArtisan && rules.artisanOnly === true) ||
+    (profile.isAnimalHusbandryOrFisheries && rules.husbandryOrFisheriesOnly === true)
+  )
 }

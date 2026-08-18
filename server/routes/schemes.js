@@ -2,6 +2,7 @@ import express from 'express'
 import Scheme from '../models/Scheme.js'
 import User from '../models/User.js'
 import { protect } from './auth.js'
+import { buildSchemeTranslations } from '../services/schemeTranslation.js'
 
 const router = express.Router()
 
@@ -19,7 +20,9 @@ router.get('/', async (req, res) => {
 router.post('/', protect, async (req, res) => {
   if (!req.user.is_admin) return res.status(403).json({ message: 'Forbidden' })
   try {
-    const scheme = await Scheme.create(req.body)
+    const payload = req.body
+    const translations = await buildSchemeTranslations(payload)
+    const scheme = await Scheme.create({ ...payload, ...translations })
     res.status(201).json(scheme)
   } catch (error) {
     res.status(400).json({ message: error.message })
@@ -30,7 +33,9 @@ router.post('/', protect, async (req, res) => {
 router.put('/:id', protect, async (req, res) => {
   if (!req.user.is_admin) return res.status(403).json({ message: 'Forbidden' })
   try {
-    const scheme = await Scheme.findByIdAndUpdate(req.params.id, req.body, { new: true })
+    const payload = req.body
+    const translations = await buildSchemeTranslations(payload)
+    const scheme = await Scheme.findByIdAndUpdate(req.params.id, { ...payload, ...translations }, { new: true })
     res.json(scheme)
   } catch (error) {
     res.status(400).json({ message: error.message })

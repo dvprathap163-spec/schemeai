@@ -4,6 +4,28 @@ import { extractProfileWithChatGPT, generateChatGPTSchemeResponse } from '@/lib/
 import { getSchemeByQuery, mergeProfiles } from '@/lib/scheme-service'
 import type { ChatMessage, ExtractedUserProfile, RankedScheme, SchemeModel, UserProfile } from '@/types'
 
+export type QueryIntent =
+  | 'documents'
+  | 'eligibility'
+  | 'benefits'
+  | 'application_process'
+  | 'deadline'
+  | 'overview'
+  | 'recommendation'
+
+export function detectQueryIntent(query: string): QueryIntent {
+  const lower = query.toLowerCase()
+
+  if (/document|papers?|certificate|proof|required\s*doc/i.test(lower)) return 'documents'
+  if (/eligib|who\s*can|am\s*i\s*eligible|qualify|criteria|condition/i.test(lower)) return 'eligibility'
+  if (/benefit|advantage|what\s*(do|will)\s*i\s*get|amount|money|stipend|subsid/i.test(lower)) return 'benefits'
+  if (/how\s*to\s*apply|application\s*process|apply\s*online|registration|step|procedure/i.test(lower)) return 'application_process'
+  if (/deadline|last\s*date|due\s*date|when\s*(is|does)\s*(the|it)\s*(end|close|expire)/i.test(lower)) return 'deadline'
+  if (/detail|tell\s*me\s*about|what\s*is|explain|overview|information|full\s*detail/i.test(lower)) return 'overview'
+
+  return 'recommendation'
+}
+
 export async function sendRagChatMessage(
   messages: ChatMessage[],
   locale: string,
@@ -17,6 +39,7 @@ export async function sendRagChatMessage(
   }
 
   const userQuery = lastUserMessage.content
+  const queryIntent = detectQueryIntent(userQuery)
   const baseProfile = storedProfile ? mapUserProfile(storedProfile) : {}
   const memoryProfile = await extractConversationProfile(userMessages)
   const userProfile = mergeProfiles(baseProfile, memoryProfile)
@@ -24,13 +47,14 @@ export async function sendRagChatMessage(
 
   if (namedScheme && isSchemeDetailQuestion(userQuery)) {
     const rankedScheme = buildSingleSchemeResult(namedScheme)
-    const fallbackResponse = formatSchemeDetails(namedScheme, userProfile)
+    const fallbackResponse = formatFocusedResponse(namedScheme, userProfile, queryIntent)
 
     return generateChatGPTSchemeResponse({
       messages,
       userProfile,
       rankedSchemes: [rankedScheme],
       fallbackResponse,
+      queryIntent,
     })
   }
 
@@ -50,6 +74,7 @@ export async function sendRagChatMessage(
     userProfile,
     rankedSchemes: usefulSchemes,
     fallbackResponse,
+    queryIntent,
   })
 }
 
@@ -194,7 +219,7 @@ function parseIncome(amount: string, unit?: string): number {
 }
 
 function isSchemeDetailQuestion(query: string): boolean {
-  return /detail|benefit|document|apply|application|process|last date|deadline|eligib|how can i get|how to get/i.test(query)
+  return /detail|benefit|document|apply|application|process|last date|deadline|eligib|how can i get|how to get|criteria|condition|amount|money|stipend|subsid|step|procedure|certificate|proof|papers?|overview|tell me about|what is|explain|information/i.test(query)
 }
 
 function buildSingleSchemeResult(scheme: SchemeModel): RankedScheme {
@@ -267,6 +292,67 @@ function formatSchemeCard(result: RankedScheme): string {
   ]
     .filter(Boolean)
     .join('\n')
+}
+
+function formatFocusedResponse(scheme: SchemeModel, profile: ExtractedUserProfile, intent: QueryIntent): string {
+  const header = `🏆 ${scheme.scheme_name}\n━━━━━━━━━━━━━━━━━━`
+
+  switch (intent) {
+    case 'documents':
+      return [
+        header,
+        '',
+        'Required documents:',
+        formatBullets(scheme.documents),
+        '',
+        `Apply: ${scheme.apply_link}`,
+      ].join('\n')
+
+    case 'eligibility':
+      return [
+        header,
+        '',
+        'Eligibility criteria:',
+        formatBullets(scheme.eligibility),
+        scheme.age_limit?.min || scheme.age_limit?.max
+          ? `\nAge: ${scheme.age_limit.min ?? 'No min'} – ${scheme.age_limit.max ?? 'No max'} years`
+          : '',
+        scheme.income_limit ? `Income limit: ₹${scheme.income_limit.toLocaleString('en-IN')}` : '',
+      ].filter(Boolean).join('\n')
+
+    case 'benefits':
+      return [
+        header,
+        '',
+        'Benefits:',
+        formatBullets(scheme.benefits),
+      ].join('\n')
+
+    case 'application_process':
+      return [
+        header,
+        '',
+        'How to apply:',
+        formatBullets(scheme.application_process.map((step, index) => `${index + 1}. ${step}`)),
+        '',
+        `Apply online: ${scheme.apply_link}`,
+      ].join('\n')
+
+    case 'deadline':
+      return [
+        header,
+        '',
+        scheme.last_date
+          ? `Last date to apply: ${scheme.last_date}`
+          : 'Deadline: Check the official portal for the latest deadline.',
+        '',
+        `Official portal: ${scheme.official_link}`,
+      ].join('\n')
+
+    case 'overview':
+    default:
+      return formatSchemeDetails(scheme, profile)
+  }
 }
 
 function formatSchemeDetails(scheme: SchemeModel, profile: ExtractedUserProfile): string {

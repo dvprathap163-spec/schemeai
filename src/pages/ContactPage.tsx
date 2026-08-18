@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useNotifications } from '@/contexts/NotificationContext'
+import type { Feedback } from '@/types'
 
 const contactSchema = z.object({
   name: z.string().min(2),
@@ -20,7 +21,8 @@ const contactSchema = z.object({
 const feedbackSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
-  comment: z.string().min(10),
+  subject: z.string().min(3),
+  message: z.string().min(10),
   rating: z.number().min(1).max(5),
 })
 
@@ -31,6 +33,7 @@ const API_URL = 'http://localhost:5000/api'
 
 export function ContactPage() {
   const { addNotification } = useNotifications()
+  const [feedback, setFeedback] = useState<Feedback[]>([])
   const {
     register,
     handleSubmit,
@@ -50,7 +53,6 @@ export function ContactPage() {
     phone: '1800-XXX-XXXX',
     address: 'New Delhi, India',
   })
-  const [feedback, setFeedback] = useState<any[]>([])
 
   useEffect(() => {
     fetch(`${API_URL}/contact`)
@@ -74,21 +76,18 @@ export function ContactPage() {
       const res = await fetch(`${API_URL}/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: data.name,
-          email: data.email,
-          subject: 'User feedback',
-          message: data.comment,
-          rating: data.rating,
-        }),
+        body: JSON.stringify(data),
       })
-      if (!res.ok) throw new Error('Failed to submit feedback')
-      const saved = await res.json()
-      setFeedback((prev) => [saved, ...prev])
-      resetFeedback()
-      addNotification('Feedback submitted', 'Thank you for sharing your feedback.', 'success')
-    } catch (error: any) {
-      addNotification('Error', error.message || 'Could not submit feedback.', 'error')
+      if (res.ok) {
+        const newFeedback = await res.json()
+        setFeedback([newFeedback, ...feedback])
+        addNotification('Thank You', 'Your feedback has been submitted.', 'success')
+        resetFeedback()
+      } else {
+        addNotification('Error', 'Failed to submit feedback.', 'error')
+      }
+    } catch (error) {
+      addNotification('Error', 'Something went wrong.', 'error')
     }
   })
 
@@ -121,7 +120,7 @@ export function ContactPage() {
                 <CardContent className="pt-6">
                   <h2 className="text-xl font-semibold mb-4">Recent Feedback</h2>
                   {feedback.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No feedback has been submitted yet.</p>
+                    <p className="text-sm text-muted-foreground">No feedback submitted yet.</p>
                   ) : (
                     <div className="grid gap-4">
                       {feedback.slice(0, 3).map((item: any) => (
@@ -142,34 +141,53 @@ export function ContactPage() {
 
               <Card>
                 <CardContent className="pt-6">
+                  <h2 className="text-xl font-semibold mb-4">Send Feedback</h2>
                   <form onSubmit={onFeedbackSubmit} className="space-y-4">
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
-                        <Label htmlFor="feedback-name">Name</Label>
-                        <Input id="feedback-name" {...registerFeedback('name')} />
+                        <Label htmlFor="fb-name">Name</Label>
+                        <Input id="fb-name" {...registerFeedback('name')} />
                         {feedbackErrors.name && <p className="text-sm text-destructive">{feedbackErrors.name.message}</p>}
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="feedback-email">Email</Label>
-                        <Input id="feedback-email" type="email" {...registerFeedback('email')} />
+                        <Label htmlFor="fb-email">Email</Label>
+                        <Input id="fb-email" type="email" {...registerFeedback('email')} />
                         {feedbackErrors.email && <p className="text-sm text-destructive">{feedbackErrors.email.message}</p>}
                       </div>
                     </div>
+
                     <div className="space-y-2">
-                      <Label htmlFor="feedback-rating">Rating</Label>
-                      <Input id="feedback-rating" type="number" min={1} max={5} {...registerFeedback('rating', { valueAsNumber: true })} />
-                      {feedbackErrors.rating && <p className="text-sm text-destructive">{feedbackErrors.rating.message}</p>}
+                      <Label htmlFor="fb-subject">Subject</Label>
+                      <Input id="fb-subject" {...registerFeedback('subject')} />
+                      {feedbackErrors.subject && <p className="text-sm text-destructive">{feedbackErrors.subject.message}</p>}
                     </div>
+
                     <div className="space-y-2">
-                      <Label htmlFor="feedback-comment">Feedback</Label>
+                      <Label htmlFor="fb-rating">Rating</Label>
+                      <select
+                        id="fb-rating"
+                        {...registerFeedback('rating', { valueAsNumber: true })}
+                        className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <option value={5}>⭐⭐⭐⭐⭐ Excellent</option>
+                        <option value={4}>⭐⭐⭐⭐ Good</option>
+                        <option value={3}>⭐⭐⭐ Average</option>
+                        <option value={2}>⭐⭐ Poor</option>
+                        <option value={1}>⭐ Very Poor</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="fb-message">Message</Label>
                       <textarea
-                        id="feedback-comment"
-                        {...registerFeedback('comment')}
-                        rows={4}
+                        id="fb-message"
+                        {...registerFeedback('message')}
+                        rows={5}
                         className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       />
-                      {feedbackErrors.comment && <p className="text-sm text-destructive">{feedbackErrors.comment.message}</p>}
+                      {feedbackErrors.message && <p className="text-sm text-destructive">{feedbackErrors.message.message}</p>}
                     </div>
+
                     <Button type="submit" disabled={isFeedbackSubmitting}>Submit Feedback</Button>
                   </form>
                 </CardContent>

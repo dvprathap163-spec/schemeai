@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { getLocalizedSchemeValue } from '@/lib/scheme-translation'
+import { useTranslation } from 'react-i18next'
 
 const API_URL = 'http://localhost:5000/api'
 
@@ -16,6 +18,7 @@ const CATEGORIES = [
 ]
 
 export function SchemesPage() {
+  const { i18n } = useTranslation()
   const [schemes, setSchemes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -37,9 +40,11 @@ export function SchemesPage() {
 
   const filtered = useMemo(() => {
     return schemes.filter((s) => {
+      const localizedName = String(getLocalizedSchemeValue(s, 'name', i18n.language) ?? '')
+      const localizedDescription = String(getLocalizedSchemeValue(s, 'description', i18n.language) ?? '')
       const matchesSearch = !search ||
-        s.name?.toLowerCase().includes(search.toLowerCase()) ||
-        s.description?.toLowerCase().includes(search.toLowerCase())
+        localizedName.toLowerCase().includes(search.toLowerCase()) ||
+        localizedDescription.toLowerCase().includes(search.toLowerCase())
       const matchesCategory = category === 'all' || s.category === category
       return matchesSearch && matchesCategory
     })
@@ -81,12 +86,12 @@ export function SchemesPage() {
               {filtered.map((scheme) => (
                 <Card key={scheme._id} className="flex flex-col h-full hover:shadow-lg transition-shadow">
                   <CardHeader>
-                    {scheme.category && <Badge className="w-fit mb-2">{scheme.category}</Badge>}
-                    <CardTitle className="line-clamp-2">{scheme.name}</CardTitle>
-                    <CardDescription>{scheme.ministry}</CardDescription>
+                    {scheme.category && <Badge className="w-fit mb-2">{getLocalizedSchemeValue(scheme, 'category', i18n.language)}</Badge>}
+                    <CardTitle className="line-clamp-2">{getLocalizedSchemeValue(scheme, 'name', i18n.language)}</CardTitle>
+                    <CardDescription>{getLocalizedSchemeValue(scheme, 'ministry', i18n.language)}</CardDescription>
                   </CardHeader>
                   <CardContent className="flex-1 flex flex-col justify-between">
-                    <p className="text-sm text-muted-foreground line-clamp-3 mb-4">{scheme.description}</p>
+                    <p className="text-sm text-muted-foreground line-clamp-3 mb-4">{getLocalizedSchemeValue(scheme, 'description', i18n.language)}</p>
                     <Link to={`/schemes/${scheme.slug}`}>
                       <Button variant="secondary" className="w-full">View Details</Button>
                     </Link>

@@ -26,7 +26,7 @@ export function generateEligibilityReport(
     startY: 52,
     head: [['Field', 'Value']],
     body: [
-      ['Name', profile.fullName],
+      ...(profile.fullName ? [['Name', profile.fullName]] : []),
       ['Age', String(profile.age)],
       ['Gender', profile.gender],
       ['Category', profile.casteCategory],

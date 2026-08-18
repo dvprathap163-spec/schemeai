@@ -25,3 +25,16 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python/ML specific
+.venv
+venv
+__pycache__/
+*.pyc
+ml-service/data/*.csv
+ml-service/models/*.joblib
+ml-service/models/*.json
+
+# Local scripts
+powershell.bat
+cmd_output.txt

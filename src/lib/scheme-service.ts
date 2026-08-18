@@ -1,43 +1,52 @@
-import schemeRepository from '@/data/scheme-repository.json'
-import type { ExtractedUserProfile, SchemeModel } from '@/types'
+import type { ExtractedUserProfile, Scheme } from '@/types'
+import { schemes as defaultSchemes } from '@/data/schemes'
 
-const schemes = schemeRepository as SchemeModel[]
+let schemes: Scheme[] = [...defaultSchemes]
 
-export function getAllSchemes(): SchemeModel[] {
+export function getAllSchemes(): Scheme[] {
   return schemes
 }
 
-export function getSchemeById(id: string): SchemeModel | undefined {
+export function setAllSchemes(newSchemes: any[]): void {
+  schemes = newSchemes.map((dbScheme) => {
+    const dbId = dbScheme.id || dbScheme._id
+    const hardcoded = defaultSchemes.find((h) => h.id === dbId || h.slug === dbScheme.slug)
+    return {
+      ...dbScheme,
+      id: dbId || hardcoded?.id || '',
+      rules: dbScheme.rules || hardcoded?.rules || {},
+    } as Scheme
+  })
+}
+
+export function getSchemeById(id: string): Scheme | undefined {
   return schemes.find((scheme) => scheme.id === id)
 }
 
-export function getSchemeByQuery(query: string): SchemeModel | undefined {
+export function getSchemeByQuery(query: string): Scheme | undefined {
   const normalized = normalize(query)
 
   return schemes.find((scheme) => {
     const aliases = [
       scheme.id,
-      scheme.scheme_name,
-      scheme.scheme_name.replace(/[()]/g, ''),
-      ...scheme.scheme_name.split(/[-()]/),
-      ...scheme.scheme_name.split(/\s+/),
-      ...scheme.scheme_name.split(/[^a-zA-Z0-9]+/),
+      scheme.name,
+      scheme.name.replace(/[()]/g, ''),
+      ...scheme.name.split(/[-()]/),
+      ...scheme.name.split(/\s+/),
+      ...scheme.name.split(/[^a-zA-Z0-9]+/),
     ].map(normalize)
 
     return aliases.some((alias) => alias.length > 3 && normalized.includes(alias))
   })
 }
 
-export function buildSchemeDocument(scheme: SchemeModel): string {
+export function buildSchemeDocument(scheme: Scheme): string {
   return [
-    scheme.scheme_name,
+    scheme.name,
     scheme.category,
-    scheme.state,
-    scheme.beneficiaries.join(' '),
-    scheme.eligibility.join(' '),
+    scheme.description,
     scheme.benefits.join(' '),
     scheme.documents.join(' '),
-    scheme.application_process.join(' '),
   ].join(' ')
 }
 

@@ -18,6 +18,7 @@ export function ResultsPage() {
   const { profile, results } = useEligibility()
   const [aiRecs, setAiRecs] = useState<AIRecommendation[]>([])
   const [loadingAI, setLoadingAI] = useState(true)
+  const [activeCategory, setActiveCategory] = useState<string>('All')
 
   useEffect(() => {
     if (!profile || results.length === 0) {
@@ -101,15 +102,44 @@ export function ResultsPage() {
             </motion.div>
           )}
 
-          {results.length === 0 ? (
-            <p className="text-center text-muted-foreground py-12">{t('results.noResults')}</p>
-          ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {results.map((result, i) => (
-                <SchemeCard key={result.scheme.id} scheme={result.scheme} result={result} index={i} />
-              ))}
-            </div>
-          )}
+          {/* Category Filter Tabs */}
+          {(() => {
+            const categories = ['All', ...Array.from(new Set(results.map((r) => r.scheme.category).filter(Boolean)))]
+            const filteredResults = activeCategory === 'All'
+              ? results
+              : results.filter((r) => r.scheme.category === activeCategory)
+
+            return (
+              <>
+                {categories.length > 2 && (
+                  <div className="mb-8 flex flex-wrap gap-2">
+                    {categories.map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => setActiveCategory(cat)}
+                        className={`px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all duration-200 border ${
+                          activeCategory === cat
+                            ? 'bg-primary border-primary text-primary-foreground shadow-sm'
+                            : 'bg-background border-input hover:bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {filteredResults.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-12">{t('results.noResults')}</p>
+                ) : (
+                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {filteredResults.map((result, i) => (
+                      <SchemeCard key={result.scheme.id} scheme={result.scheme} result={result} index={i} />
+                    ))}
+                  </div>
+                )}
+              </>
+            )
+          })()}
         </div>
       </section>
     </>

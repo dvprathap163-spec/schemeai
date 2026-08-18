@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 interface Props {
   onSend: (text: string) => void
   loading: boolean
+  isFullscreen?: boolean
 }
 
 const quickQuestions = [
@@ -15,7 +16,7 @@ const quickQuestions = [
   'chat.quick3',
 ] as const
 
-export function ChatInput({ onSend, loading }: Props) {
+export function ChatInput({ onSend, loading, isFullscreen }: Props) {
   const { t } = useTranslation()
   const [text, setText] = useState('')
 
@@ -27,7 +28,7 @@ export function ChatInput({ onSend, loading }: Props) {
   }
 
   return (
-    <div className="space-y-2 border-t p-3">
+    <div className={isFullscreen ? 'space-y-3 border-t p-4' : 'space-y-2 border-t p-3'}>
       <div className="flex flex-wrap gap-2">
         {quickQuestions.map((key) => (
           <button
@@ -35,7 +36,11 @@ export function ChatInput({ onSend, loading }: Props) {
             type="button"
             onClick={() => onSend(t(key))}
             disabled={loading}
-            className="rounded-full border px-2 py-1 text-xs hover:bg-muted"
+            className={
+              isFullscreen
+                ? 'rounded-full border px-3 py-1.5 text-sm hover:bg-muted transition-colors'
+                : 'rounded-full border px-2 py-1 text-xs hover:bg-muted transition-colors'
+            }
           >
             {t(key)}
           </button>
@@ -48,9 +53,15 @@ export function ChatInput({ onSend, loading }: Props) {
           onChange={(e) => setText(e.target.value)}
           placeholder={t('chat.placeholder')}
           disabled={loading}
+          className={isFullscreen ? 'h-11 text-base' : ''}
         />
-        <Button type="submit" size="icon" disabled={loading || !text.trim()}>
-          <Send className="h-4 w-4" />
+        <Button
+          type="submit"
+          size="icon"
+          disabled={loading || !text.trim()}
+          className={isFullscreen ? 'h-11 w-11' : ''}
+        >
+          <Send className={isFullscreen ? 'h-5 w-5' : 'h-4 w-4'} />
         </Button>
       </form>
     </div>

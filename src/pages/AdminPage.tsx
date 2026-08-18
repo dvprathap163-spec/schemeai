@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useNotifications } from '@/contexts/NotificationContext'
 import { Skeleton } from '@/components/ui/skeleton'
+import { schemes as defaultSchemes } from '@/data/schemes'
 
 const API_URL = 'http://localhost:5000/api'
 
@@ -17,15 +18,17 @@ const EMPTY_SCHEME = {
 export function AdminPage() {
   const { addNotification } = useNotifications()
 
-  type TabType = 'schemes' | 'stats' | 'faqs' | 'contact'
+  type TabType = 'schemes' | 'stats' | 'faqs' | 'contact' | 'feedback'
   const [activeTab, setActiveTab] = useState<TabType>('schemes')
 
   // Schemes
   const [schemes, setSchemes] = useState<any[]>([])
   const [editingScheme, setEditingScheme] = useState<any | null>(null)
+  const [savingScheme, setSavingScheme] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState<string>('All')
 
   // Stats
-  const [stats, setStats] = useState({ schemesCount: 150, usersCount: 2000000, statesCount: 36, accuracy: 95 })
+  const [stats, setStats] = useState({ schemesCount: 0, usersCount: 0, statesCount: 1, accuracy: 93 })
   const [savingStats, setSavingStats] = useState(false)
 
   // FAQs
@@ -39,6 +42,9 @@ export function AdminPage() {
     address: 'New Delhi, India',
   })
 
+  // Feedback
+  const [feedbacks, setFeedbacks] = useState<any[]>([])
+
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -46,13 +52,34 @@ export function AdminPage() {
     else if (activeTab === 'stats') fetchStats()
     else if (activeTab === 'faqs') fetchFaqs()
     else if (activeTab === 'contact') fetchContact()
+    else if (activeTab === 'feedback') fetchFeedbacks()
   }, [activeTab])
 
   // ── Fetch helpers ──
-  const fetchSchemes = async () => { setLoading(true); try { const r = await fetch(`${API_URL}/schemes`); if (r.ok) setSchemes(await r.json()) } catch {} setLoading(false) }
-  const fetchStats = async () => { setLoading(true); try { const r = await fetch(`${API_URL}/stats`); if (r.ok) setStats(await r.json()) } catch {} setLoading(false) }
-  const fetchFaqs = async () => { setLoading(true); try { const r = await fetch(`${API_URL}/faqs`); if (r.ok) setFaqs(await r.json()) } catch {} setLoading(false) }
-  const fetchContact = async () => { setLoading(true); try { const r = await fetch(`${API_URL}/contact`); if (r.ok) setContactInfo(await r.json()) } catch {} setLoading(false) }
+  const fetchSchemes = async () => { setLoading(true); try { const r = await fetch(`${API_URL}/schemes`); if (r.ok) setSchemes(await r.json()) } catch { } setLoading(false) }
+  const fetchStats = async () => { setLoading(true); try { const r = await fetch(`${API_URL}/stats`); if (r.ok) setStats(await r.json()) } catch { } setLoading(false) }
+  const fetchFaqs = async () => { setLoading(true); try { const r = await fetch(`${API_URL}/faqs`); if (r.ok) setFaqs(await r.json()) } catch { } setLoading(false) }
+  const fetchContact = async () => { setLoading(true); try { const r = await fetch(`${API_URL}/contact`); if (r.ok) setContactInfo(await r.json()) } catch { } setLoading(false) }
+  const fetchFeedbacks = async () => { setLoading(true); try { const r = await fetch(`${API_URL}/feedback`); if (r.ok) setFeedbacks(await r.json()) } catch { } setLoading(false) }
+
+  const handleDeleteFeedback = async (id: string) => {
+    if (!confirm('Delete this feedback?')) return
+    try {
+      const r = await fetch(`${API_URL}/feedback/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token()}` }
+      })
+      if (r.ok) {
+        addNotification('Deleted', 'Feedback removed.', 'success')
+        fetchFeedbacks()
+      } else {
+        const d = await r.json()
+        addNotification('Error', d.message || 'Failed to delete feedback.', 'error')
+      }
+    } catch (e: any) {
+      addNotification('Error', e.message, 'error')
+    }
+  }
 
   const token = () => localStorage.getItem('token')
 
@@ -75,16 +102,25 @@ export function AdminPage() {
   }
   const handleSaveScheme = async () => {
     if (!editingScheme) return
+    setSavingScheme(true)
+    const cleanBenefits = editingScheme.benefits.filter((b: string) => b.trim())
+    const cleanDocuments = editingScheme.documents.filter((d: string) => d.trim())
     const data = {
       ...editingScheme,
       slug: editingScheme.slug || editingScheme.name?.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
-      benefits: editingScheme.benefits.filter((b: string) => b.trim()),
-      documents: editingScheme.documents.filter((d: string) => d.trim()),
+      benefits: cleanBenefits,
+      documents: cleanDocuments,
     }
     const url = editingScheme._id ? `${API_URL}/schemes/${editingScheme._id}` : `${API_URL}/schemes`
-    const r = await fetch(url, { method: editingScheme._id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` }, body: JSON.stringify(data) })
-    if (r.ok) { addNotification('Success', 'Scheme saved.', 'success'); fetchSchemes(); setEditingScheme(null) }
-    else { const d = await r.json(); addNotification('Error', d.message, 'error') }
+    try {
+      const r = await fetch(url, { method: editingScheme._id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` }, body: JSON.stringify(data) })
+      if (r.ok) { addNotification('Success', 'Scheme saved and translated into all supported languages.', 'success'); fetchSchemes(); setEditingScheme(null) }
+      else { const d = await r.json(); addNotification('Error', d.message, 'error') }
+    } catch (error: any) {
+      addNotification('Error', error.message || 'Could not save the scheme.', 'error')
+    } finally {
+      setSavingScheme(false)
+    }
   }
 
   // ── FAQ CRUD ──
@@ -139,35 +175,54 @@ export function AdminPage() {
             {TAB_BTN('faqs', '❓ FAQs')}
             {TAB_BTN('contact', '☎️ Contact')}
             {TAB_BTN('stats', '📊 Statistics')}
+            {TAB_BTN('feedback', '💬 Feedback')}
           </div>
 
           {/* ─── SCHEMES ─── */}
-          {activeTab === 'schemes' && (
-            <div>
-              <div className="mb-6 flex justify-between items-center">
-                <p className="text-sm text-muted-foreground">{schemes.length} schemes in database</p>
-                <Button onClick={() => setEditingScheme({ ...EMPTY_SCHEME })}>+ Add Scheme</Button>
-              </div>
-              {loading ? <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /></div> : (
-                <div className="grid gap-4">
-                  {schemes.map((s) => (
-                    <Card key={s._id}><CardContent className="flex items-center justify-between pt-6">
-                      <div>
-                        <p className="font-semibold">{s.name}</p>
-                        <p className="text-sm text-muted-foreground">{s.category} · {s.ministry}</p>
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{s.description}</p>
-                      </div>
-                      <div className="flex gap-2 ml-4 shrink-0">
-                        <Button variant="outline" size="sm" onClick={() => setEditingScheme({ ...s, benefits: s.benefits?.length ? s.benefits : [''], documents: s.documents?.length ? s.documents : [''] })}>Edit</Button>
-                        <Button variant="destructive" size="sm" onClick={() => handleDeleteScheme(s._id)}>Delete</Button>
-                      </div>
-                    </CardContent></Card>
-                  ))}
-                  {schemes.length === 0 && <div className="text-center py-16 text-muted-foreground"><p className="text-4xl mb-4">📭</p><p>No schemes yet. Add one!</p></div>}
+          {activeTab === 'schemes' && (() => {
+            const categories = ['All', ...Array.from(new Set(schemes.map((s) => s.category).filter(Boolean)))]
+            const filteredSchemes = selectedCategory === 'All'
+              ? schemes
+              : schemes.filter((s) => s.category === selectedCategory)
+
+            return (
+              <div>
+                <div className="mb-6 flex justify-between items-center flex-wrap gap-4">
+                  <div className="flex items-center gap-3">
+                    <p className="text-sm text-muted-foreground">{schemes.length} schemes in database</p>
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      className="border border-input rounded-md px-3 py-1 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    >
+                      {categories.map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <Button onClick={() => setEditingScheme({ ...EMPTY_SCHEME })}>+ Add Scheme</Button>
                 </div>
-              )}
-            </div>
-          )}
+                {loading ? <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /></div> : (
+                  <div className="grid gap-4">
+                    {filteredSchemes.map((s) => (
+                      <Card key={s._id}><CardContent className="flex items-center justify-between pt-6">
+                        <div>
+                          <p className="font-semibold">{s.name}</p>
+                          <p className="text-sm text-muted-foreground">{s.category} · {s.ministry}</p>
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{s.description}</p>
+                        </div>
+                        <div className="flex gap-2 ml-4 shrink-0">
+                          <Button variant="outline" size="sm" onClick={() => setEditingScheme({ ...s, benefits: s.benefits?.length ? s.benefits : [''], documents: s.documents?.length ? s.documents : [''] })}>Edit</Button>
+                          <Button variant="destructive" size="sm" onClick={() => handleDeleteScheme(s._id)}>Delete</Button>
+                        </div>
+                      </CardContent></Card>
+                    ))}
+                    {filteredSchemes.length === 0 && <div className="text-center py-16 text-muted-foreground"><p className="text-4xl mb-4">📭</p><p>No schemes matched this category.</p></div>}
+                  </div>
+                )}
+              </div>
+            )
+          })()}
 
           {/* ─── FAQs ─── */}
           {activeTab === 'faqs' && (
@@ -235,14 +290,87 @@ export function AdminPage() {
             </div>
           )}
 
+          {/* ─── FEEDBACK ─── */}
+          {activeTab === 'feedback' && (
+            <div>
+              <div className="mb-6 flex justify-between items-center">
+                <p className="text-sm text-muted-foreground">{feedbacks.length} feedback submissions in database</p>
+              </div>
+              {loading ? (
+                <div className="space-y-4">
+                  <Skeleton className="h-24 w-full" />
+                  <Skeleton className="h-24 w-full" />
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {feedbacks.map((f) => (
+                    <Card key={f._id}>
+                      <CardContent className="flex items-start justify-between pt-6 gap-4">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-lg">{f.subject}</span>
+                            <span className="text-sm text-muted-foreground">({f.email})</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {Array.from({ length: 5 }).map((_, idx) => (
+                              <span
+                                key={idx}
+                                className={`text-sm ${idx < (f.rating || 5) ? 'text-amber-400' : 'text-muted/40'
+                                  }`}
+                              >
+                                ★
+                              </span>
+                            ))}
+                          </div>
+                          <p className="text-sm text-foreground bg-muted p-3 rounded-lg border border-border">
+                            {f.comment}
+                          </p>
+                          <div className="text-xs text-muted-foreground">
+                            Submitted by <span className="font-semibold">{f.name}</span> on{' '}
+                            {new Date(f.createdAt).toLocaleString()}
+                          </div>
+                        </div>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteFeedback(f._id)}
+                          className="shrink-0"
+                        >
+                          Delete
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  {feedbacks.length === 0 && (
+                    <div className="text-center py-16 text-muted-foreground">
+                      <p className="text-4xl mb-4">💬</p>
+                      <p>No feedback received yet.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ─── SCHEME MODAL ─── */}
           {editingScheme && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
               <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl border bg-background p-6 space-y-5 shadow-xl">
                 <h2 className="text-xl font-semibold">{editingScheme._id ? 'Edit Scheme' : 'New Scheme'}</h2>
+                <p className="text-sm text-muted-foreground">Enter the scheme in English. Saving automatically translates every detail into Hindi, Telugu, Kannada, Malayalam, and Tamil.</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2 space-y-2"><Label>Scheme Name *</Label><Input placeholder="e.g. PM-KISAN Samman Nidhi" value={editingScheme.name || ''} onChange={(e) => setEditingScheme({ ...editingScheme, name: e.target.value })} /></div>
-                  <div className="space-y-2"><Label>Category</Label><Input placeholder="e.g. Agriculture" value={editingScheme.category || ''} onChange={(e) => setEditingScheme({ ...editingScheme, category: e.target.value })} /></div>
+                  <div className="space-y-2"><Label>Category</Label>
+                    <select
+                      className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      value={editingScheme.category || 'Social Welfare'}
+                      onChange={(e) => setEditingScheme({ ...editingScheme, category: e.target.value })}
+                    >
+                      {['Education', 'Health', 'Agriculture', 'Employment', 'Housing', 'Women', 'Senior Citizen', 'Startup', 'Skill Development', 'Social Welfare'].map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
                   <div className="space-y-2"><Label>Ministry</Label><Input placeholder="e.g. Ministry of Agriculture" value={editingScheme.ministry || ''} onChange={(e) => setEditingScheme({ ...editingScheme, ministry: e.target.value })} /></div>
                   <div className="col-span-2 space-y-2"><Label>Description</Label><Input placeholder="Short description" value={editingScheme.description || ''} onChange={(e) => setEditingScheme({ ...editingScheme, description: e.target.value })} /></div>
                   <div className="space-y-2"><Label>Apply Now URL</Label><Input placeholder="https://..." value={editingScheme.applyUrl || ''} onChange={(e) => setEditingScheme({ ...editingScheme, applyUrl: e.target.value })} /></div>
@@ -264,8 +392,8 @@ export function AdminPage() {
                   <Button variant="outline" size="sm" onClick={() => addListItem('documents')}>+ Add Document</Button>
                 </div>
                 <div className="flex gap-2 pt-2">
-                  <Button className="flex-1" onClick={handleSaveScheme}>Save to Database</Button>
-                  <Button variant="outline" onClick={() => setEditingScheme(null)}>Cancel</Button>
+                  <Button className="flex-1" onClick={handleSaveScheme} disabled={savingScheme}>{savingScheme ? 'Translating and saving...' : 'Save to Database'}</Button>
+                  <Button variant="outline" onClick={() => setEditingScheme(null)} disabled={savingScheme}>Cancel</Button>
                 </div>
               </div>
             </div>

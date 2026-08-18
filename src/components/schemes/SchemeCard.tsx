@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useBookmarks } from '@/contexts/BookmarkContext'
 import type { EligibilityResult, Scheme } from '@/types'
 import { cn } from '@/lib/utils'
+import { getLocalizedSchemeValue } from '@/lib/scheme-translation'
 
 interface SchemeCardProps {
   scheme: Scheme
@@ -18,8 +19,11 @@ interface SchemeCardProps {
 export function SchemeCard({ scheme, result, index = 0 }: SchemeCardProps) {
   const { t, i18n } = useTranslation()
   const { isBookmarked, toggleBookmark } = useBookmarks()
-  const isHi = i18n.language === 'hi'
   const bookmarked = isBookmarked(scheme.id)
+
+  const localizedName = String(getLocalizedSchemeValue(scheme, 'name', i18n.language) || '')
+  const localizedDescription = String(getLocalizedSchemeValue(scheme, 'description', i18n.language) || '')
+  const localizedBenefits = (getLocalizedSchemeValue(scheme, 'benefits', i18n.language) as string[]) || []
 
   return (
     <motion.div
@@ -35,11 +39,11 @@ export function SchemeCard({ scheme, result, index = 0 }: SchemeCardProps) {
               <Badge variant="secondary" className="mb-2">{scheme.category}</Badge>
               <CardTitle className="text-base leading-snug">
                 <Link to={`/schemes/${scheme.slug}`} className="hover:text-primary transition-colors">
-                  {isHi ? scheme.nameHi : scheme.name}
+                  {localizedName}
                 </Link>
               </CardTitle>
               <CardDescription className="mt-1 line-clamp-2">
-                {isHi ? scheme.descriptionHi : scheme.description}
+                {localizedDescription}
               </CardDescription>
             </div>
             <Button
@@ -63,7 +67,7 @@ export function SchemeCard({ scheme, result, index = 0 }: SchemeCardProps) {
           )}
 
           <div className="flex flex-wrap gap-2">
-            {(isHi ? scheme.benefitsHi : scheme.benefits).slice(0, 2).map((b) => (
+            {localizedBenefits.slice(0, 2).map((b) => (
               <span key={b} className="rounded-md bg-muted px-2 py-1 text-xs">{b}</span>
             ))}
           </div>

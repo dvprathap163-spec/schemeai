@@ -5,6 +5,7 @@ import dotenv from 'dotenv'
 
 import authRoutes from './routes/auth.js'
 import schemeRoutes from './routes/schemes.js'
+import eligibilityRoutes from './routes/eligibility.js'
 import Stat from './models/Stat.js'
 import FAQ from './models/FAQ.js'
 import Feedback from './models/Feedback.js'
@@ -26,8 +27,9 @@ mongoose.connect(MONGO_URI)
 
 app.use('/api/auth', authRoutes)
 app.use('/api/schemes', schemeRoutes)
+app.use('/api/eligibility', eligibilityRoutes)
 
-// ─── Stats ───
+// --- Stats ---
 app.get('/api/stats', async (req, res) => {
   try {
     let stat = await Stat.findOne()
@@ -51,7 +53,7 @@ app.put('/api/stats', protect, async (req, res) => {
   } catch (error) { res.status(400).json({ message: error.message }) }
 })
 
-// ─── FAQs ───
+// --- FAQs ---
 app.get('/api/faqs', async (req, res) => {
   try {
     const faqs = await FAQ.find().sort({ order: 1, createdAt: 1 })
@@ -80,7 +82,7 @@ app.delete('/api/faqs/:id', protect, async (req, res) => {
   } catch (error) { res.status(400).json({ message: error.message }) }
 })
 
-// ─── Feedback ───
+// --- Feedback ---
 app.get('/api/feedback', async (req, res) => {
   try {
     const feedback = await Feedback.find().sort({ createdAt: -1 })
@@ -103,8 +105,16 @@ app.post('/api/feedback', async (req, res) => {
     res.status(201).json(feedback)
   } catch (error) { res.status(400).json({ message: error.message }) }
 })
+app.delete('/api/feedback/:id', protect, async (req, res) => {
+  if (!req.user.is_admin) return res.status(403).json({ message: 'Forbidden' })
+  try {
+    await Feedback.findByIdAndDelete(req.params.id)
+    res.json({ message: 'Feedback removed' })
+  } catch (error) { res.status(400).json({ message: error.message }) }
+})
 
-// ─── Contact Info ───
+
+// --- Contact Info ---
 app.get('/api/contact', async (req, res) => {
   try {
     let contact = await ContactInfo.findOne()
